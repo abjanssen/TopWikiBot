@@ -2,7 +2,6 @@
 
 import requests
 from datetime import date, timedelta, datetime, timezone
-import json
 import re
 from typing import Dict, List
 from bs4 import BeautifulSoup
@@ -21,9 +20,7 @@ def bsky_login_session(handle: str, password: str) -> Dict:
     resp_data = resp.json()
     jwt = resp_data["accessJwt"]
     did = resp_data["did"]
-#    print(jwt)
     return(did, jwt)
-
 
 #Define function that turns the raw number of the amount of views into a printable number with thousands separators
 def number_with_thousands_separators(nr):
@@ -39,9 +36,7 @@ def number_with_thousands_separators(nr):
                 print_amount = thousands_separator + print_amount
         if print_amount[0] == thousands_separator:
             print_amount = print_amount[1:]
-#    print(print_amount)
     return(print_amount)
-
 
 #Define function to get the date in the printable form needed
 def date_of_interest():
@@ -54,12 +49,10 @@ def date_of_interest():
     day_name = specified_date.strftime('%A')
     month_name = specified_date.strftime('%B')
     print_date = """{} {} {} {}""".format(day_name, day_adapted, month_name, year)
-#    print(print_date)
     return(print_date)
 
 #Define the function that returns the wikipedia data needed for the post
 def get_wikipedia_data(nr):
-    #define variables to be used
     list_top_pages = []
     list_top_views = []
     counter = 0
@@ -70,7 +63,6 @@ def get_wikipedia_data(nr):
     language = "en"
     user_agent = {"User-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.159 Safari/537.36"}
 
-    #get list of most viewed pages
     yesterday = date.today() - timedelta(days=1)
     year = yesterday.strftime("%Y")
     month = yesterday.strftime("%m")
@@ -79,7 +71,6 @@ def get_wikipedia_data(nr):
     r = requests.get(req_url, headers = user_agent)
     response_data = r.json()
     
-    #get info for 5 most viewed pages
     list_of_filtered_pages = [
     "Main_Page",
     "Wikipedia:Featured_pictures",
@@ -128,11 +119,6 @@ def get_wikipedia_data(nr):
             counter += 1
             if counter == nr:
                 break
-#    print(list_top_pages)
-#    print(list_top_views)
-#    print(list_most_viewed_urls)
-#    print(list_top_titles)
-#    print(list_picture_urls)
     return(list_top_pages, list_top_views, list_most_viewed_urls, list_top_titles, list_picture_urls)
 
 #Define the text of the post
@@ -141,7 +127,7 @@ def text_of_message(nr):
    wikipedia_data = get_wikipedia_data(nr)
    list_top_views = wikipedia_data[1]
    list_top_titles = wikipedia_data[3]   
-   print_message = f"""The {nr} most viewed @wikipedia.bsky.social articles on {date} were:\n"""
+   print_message = f"""The top {nr} most viewed @wikipedia.bsky.social articles on {date} were:\n"""
    counter = 0 
    for i in range(nr):
        page = list_top_titles[i]
@@ -152,7 +138,6 @@ def text_of_message(nr):
        if counter == nr:
            break
        counter += 1
-   print(print_message)
    return(print_message)
 
 def fix_url_format(url):
@@ -165,7 +150,6 @@ def fix_url_format(url):
 #Define function to parse mentions in the message text into facets
 def parse_mentions(text: str) -> List[Dict]:
     spans = []
-    # regex based on: https://atproto.com/specs/handle#handle-identifier-syntax
     mention_regex = rb"[$|\W](@([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)"
     text_bytes = text.encode("UTF-8")
     for m in re.finditer(mention_regex, text_bytes):
@@ -181,8 +165,6 @@ def parse_mentions(text: str) -> List[Dict]:
 #Define function to parse URLs in the message text into facets
 def parse_urls(text: str) -> List[Dict]:
     spans = []
-    # partial/naive URL regex based on: https://stackoverflow.com/a/3809435
-    # tweaked to disallow some training punctuation
     url_regex = rb"[$|\W](https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*[-a-zA-Z0-9@%_\+~#//=])?)"
     text_bytes = text.encode("UTF-8")
     for m in re.finditer(url_regex, text_bytes):
@@ -232,17 +214,12 @@ def get_embed_ref(pds_url: str, ref_uri: str) -> Dict:
     }
         
 #Define function to turn facets into bluesky objects text and return list of bluesky objects
-#    """
-#    parses post text and returns a list of app.bsky.richtext.facet objects for any mentions (@handle.example.com) or URLs (https://example.com)
-#    indexing must work with UTF-8 encoded bytestring offsets, not regular unicode string offsets, to match Bluesky API expectations
-#    """
 def parse_facets(text: str) -> List[Dict]:
     facets = []
     for m in parse_mentions(text):
         resp = requests.get(
             "https://bsky.social/xrpc/com.atproto.identity.resolveHandle",
             params={"handle": m["handle"]},)
-        # if handle couldn't be resolved, just skip it! will be text in the post
         if resp.status_code == 400:
             continue
         did = resp.json()["did"]
@@ -265,7 +242,6 @@ def parse_facets(text: str) -> List[Dict]:
                 "features": [
                     {
                         "$type": "app.bsky.richtext.facet#link",
-                        # NOTE: URI ("I") not URL ("L")
                         "uri": u["url"],
                     }
                 ],
@@ -275,25 +251,22 @@ def parse_facets(text: str) -> List[Dict]:
 
 #Define the function to fetch the embeded URL card for the top page
 def fetch_embed_url_card() -> Dict:
-    accessJwt = bsky_login_session(BLUESKY_HANDLE,BLUESKY_APP_PASSWORD)[1]
+    accessJwt = bsky_login_session(BLUESKY_HANDLE,BLUESKY_PASSWORD)[1]
     wikipedia_data = get_wikipedia_data(1)
     list_most_viewed_urls = wikipedia_data[2]
     url = fix_url_format(list_most_viewed_urls[0])
     IMAGE_MIMETYPE = "image/png"
     
-    # the required fields for every embed card
     card = {
         "uri": url,
         "title": "",
         "description": "",
     }
 
-    # fetch the HTML
     resp = requests.get(url)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
-    # parse out the "og:title" and "og:description" HTML meta tags
     title_tag = soup.find("meta", property="og:title")
     if title_tag:
         card["title"] = title_tag["content"]
@@ -301,11 +274,9 @@ def fetch_embed_url_card() -> Dict:
     if description_tag:
         card["description"] = description_tag["content"]
 
-    # if there is an "og:image" HTML meta tag, fetch and upload that image
     image_tag = soup.find("meta", property="og:image")
     if image_tag:
         img_url = image_tag["content"]
-        # naively turn a "relative" URL (just a path) into a full URL, if needed
         if "://" not in img_url:
             img_url = url + img_url
         resp = requests.get(img_url)
@@ -329,9 +300,7 @@ def fetch_embed_url_card() -> Dict:
 
 
 def create_post(text: str):
-    session = bsky_login_session(BLUESKY_HANDLE, BLUESKY_APP_PASSWORD)
-
-    # trailing "Z" is preferred over "+00:00"
+    session = bsky_login_session(BLUESKY_HANDLE, BLUESKY_PASSWORD)
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     language = "en-US"
     
@@ -339,10 +308,8 @@ def create_post(text: str):
         "$type": "app.bsky.feed.post",
         "text": text,
         "createdAt": now,
-        "langs": [language],
-    }
+        "langs": [language],}
 
-    # parse out mentions and URLs as "facets"
     if len(text) > 0:
         facets = parse_facets(post["text"])
         if facets:
@@ -354,11 +321,6 @@ def create_post(text: str):
     if len(url) > 0: 
          url_card = fetch_embed_url_card()
          post["embed"] = url_card
- #   elif args.embed_ref:
- #       post["embed"] = get_embed_ref(args.pds_url, args.embed_ref)
-
-    print("creating post:", file=sys.stderr)
-    print(json.dumps(post, indent=2), file=sys.stderr)
 
     resp = requests.post(
         "https://bsky.social/xrpc/com.atproto.repo.createRecord",
@@ -369,8 +331,6 @@ def create_post(text: str):
             "record": post,
         },
     )
-    print("createRecord response:", file=sys.stderr)
-    print(json.dumps(resp.json(), indent=2))
     resp.raise_for_status()
 
 
