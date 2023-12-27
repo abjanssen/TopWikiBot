@@ -331,7 +331,3 @@ def create_post(text: str):
 
 def main():
     create_post(text_of_message(3))
-
-if __name__ == "__main__":
-    main()
-
