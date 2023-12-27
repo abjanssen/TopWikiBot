@@ -1,7 +1,7 @@
 import nltk
 import os
 
-from .post import go
+from .wikibot import main
 from . import post
 from . import creds
 
