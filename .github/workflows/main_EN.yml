@@ -3,7 +3,7 @@ name: The Daily Post
 on:
 #  workflow_dispatch:
   schedule:
-    - cron: "12 16 * * *"
+    - cron: "19 15 * * *"
 
 jobs:
   build:
