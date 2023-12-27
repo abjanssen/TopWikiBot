@@ -1,8 +1,9 @@
 name: The Daily Post
 
 on:
-  schedule:
-    - cron: "00 15 * * *"
+  workflow_dispatch:
+#  schedule:
+#    - cron: "00 15 * * *"
 
 jobs:
   build:
