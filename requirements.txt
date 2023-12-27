@@ -2,3 +2,4 @@ requests==2.31.0
 numpy>=1.22.2
 typing==3.7.4.3
 beautifulsoup4==4.12.2
+nltk==3.8.1
