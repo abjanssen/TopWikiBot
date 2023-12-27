@@ -5,18 +5,13 @@ from datetime import date, timedelta, datetime, timezone
 import re
 from typing import Dict, List
 from bs4 import BeautifulSoup
-import sys
 
 #Define a function that logs into bluesky, return the access token
 def bsky_login_session(handle: str, password: str) -> Dict:
     resp = requests.post(
         "https://bsky.social/xrpc/com.atproto.server.createSession",
         json={"identifier": handle, "password": password})
-    try:
-        resp.raise_for_status()
-    except:
-        print("Error: Cannot log into bluesky.\n")
-        sys.exit(1)
+    resp.raise_for_status()
     resp_data = resp.json()
     jwt = resp_data["accessJwt"]
     did = resp_data["did"]
