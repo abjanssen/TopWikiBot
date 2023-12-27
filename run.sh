@@ -3,6 +3,6 @@ set -eo pipefail
 python - <<'END_SCRIPT'
 import bot
 
-bot.go()
+bot.main()
 END_SCRIPT
 echo "$(date): posted"
