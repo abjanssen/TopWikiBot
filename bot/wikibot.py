@@ -6,6 +6,9 @@ import re
 from typing import Dict, List
 from bs4 import BeautifulSoup
 
+BLUESKY_HANDLE = os.getenv("BLUESKY_HANDLE")
+BLUESKY_PASSWORD = os.getenv("BLUESKY_PASSWORD")
+    
 #Define a function that logs into bluesky, return the access token
 def bsky_login_session(handle: str, password: str) -> Dict:
     resp = requests.post(
