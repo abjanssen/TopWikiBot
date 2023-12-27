@@ -1,6 +1,6 @@
 requests==2.31.0
 numpy>=1.22.2
-re
+regex==2023.12.25
 datetime==0.9.4
 typing==3.10.0.0
 beautifulsoup4==4.12.2
