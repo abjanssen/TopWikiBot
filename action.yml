@@ -2,7 +2,7 @@ name: The Daily Post
 
 on:
   schedule:
-    - cron: "00 15 * * *"
+    - cron: "18 20 * * *"
 
 jobs:
   build:
