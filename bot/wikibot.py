@@ -78,7 +78,13 @@ def get_wikipedia_data(nr):
     "Wikipedia:Contact_us",
     "Special:Search",
     "Special:Watchlist",
-    "Special:RecentChanges"
+    "Special:RecentChanges",
+    "Pornhub",
+    "YouTube",
+    "YouPorn",
+    "XVideos",
+    "XNXX",
+    "xHamster",
     ]
     nr_for_loop = nr+10
     for i in range(nr_for_loop):
