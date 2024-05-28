@@ -84,6 +84,7 @@ def get_wikipedia_data(nr):
     "YouPorn",
     "XVideos",
     "XNXX",
+    ".xxx",
     "xHamster",
     ]
     nr_for_loop = nr+10
