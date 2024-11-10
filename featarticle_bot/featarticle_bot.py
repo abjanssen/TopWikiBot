@@ -79,7 +79,7 @@ def text_of_message():
    wikipedia_data = get_wikipedia_data()
    title = wikipedia_data[0]
    text=wikipedia_data[3]
-   print_message = f"""Todays Featured Article of {date_it} on @wikipedia.bsky.social: {title}.\n"""
+   print_message = f"""The Featured Article of {date_it} on @wikipedia.bsky.social is: {title}.\n\n"""
    
    for i in range(len(text)):
        addition = text[i]
