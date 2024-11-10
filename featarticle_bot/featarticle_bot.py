@@ -203,7 +203,7 @@ def parse_facets(text: str) -> List[Dict]:
 #Define the function to fetch the embeded URL card for the top page
 def fetch_embed_url_card() -> Dict:
     accessJwt = bsky_login_session(BLUESKY_HANDLE,BLUESKY_PASSWORD)[1]
-    wikipedia_url=get_wikipedia_data[1]
+    wikipedia_url=get_wikipedia_data()[1]
     url = fix_url_format(wikipedia_url)
     IMAGE_MIMETYPE = "image/png"
     
