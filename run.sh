@@ -1,8 +1,8 @@
 #! /bin/bash
 set -eo pipefail
 python - <<'END_SCRIPT'
-import bot
+import views_bot
 
-bot.main()
+views_bot.main()
 END_SCRIPT
 echo "$(date): posted"
