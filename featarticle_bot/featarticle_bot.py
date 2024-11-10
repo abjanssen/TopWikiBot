@@ -265,7 +265,7 @@ def create_post(text: str):
         if facets:
             post["facets"] = facets
 
-    wikipedia_url=get_wikipedia_data[1]
+    wikipedia_url=get_wikipedia_data()[1]
     url = fix_url_format(wikipedia_url)
     if len(url) > 0: 
          url_card = fetch_embed_url_card()
