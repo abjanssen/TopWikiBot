@@ -1,7 +1,7 @@
 import nltk
 import os
 
-from .wikibot import main
+from .views_bot import main
 from . import main
 
 if not os.path.exists("nltk_data"):
