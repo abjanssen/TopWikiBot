@@ -39,7 +39,7 @@ def get_wikipedia_data():
     today_feat_article = []
     page_picture_url = []
     language = "en"
-    user_agent = {"User-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.159 Safari/537.36"}
+    user_agent = {"User-agent": "BestOfWikipediaBot (https://bsky.app/profile/bestofwikipedia.bsky.social)"}
 
     current_day = date.today()
     year = current_day.strftime("%Y")
