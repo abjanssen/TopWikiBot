@@ -283,5 +283,4 @@ def create_post(text: str):
     resp.raise_for_status()
 
 def main():
-    return(text_of_message())
     create_post(text_of_message())
