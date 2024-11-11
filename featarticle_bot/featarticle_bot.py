@@ -284,7 +284,3 @@ def create_post(text: str):
 
 def main():
     create_post(text_of_message())
-
-if __name__ == "__main__":
-    main()
-
