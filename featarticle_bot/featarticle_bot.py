@@ -41,7 +41,7 @@ def get_wikipedia_data():
     language = "en"
     user_agent = {"User-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.159 Safari/537.36"}
 
-    current_day = date.today()
+    current_day = date.today() - timedelta(days=1)
     year = current_day.strftime("%Y")
     month = current_day.strftime("%m")
     day = current_day.strftime("%d")
