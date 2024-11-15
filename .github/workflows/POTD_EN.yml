@@ -3,7 +3,7 @@ name: Daily Picture of the Day Post
 on:
 #  workflow_dispatch:
   schedule:
-    - cron: "30 12 * * *"
+    - cron: "00 16 * * *"
   workflow_dispatch:
 
 jobs:
