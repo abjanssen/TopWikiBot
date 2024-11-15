@@ -236,6 +236,9 @@ def create_post(text: str, wikipedia_data):
         },
     )
     resp.raise_for_status()
+    print(os.getcwd())
+    os.remove("feat_picture.jpg")
+    os.remove("feat_picture_resized.jpg")
 
 def main():
     create_post(text_of_message(), get_wikipedia_data())
