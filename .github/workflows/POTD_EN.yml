@@ -1,4 +1,4 @@
-name: Picture of the Day Post
+name: Daily Picture of the Day Post
 
 on:
 #  workflow_dispatch:
