@@ -70,13 +70,6 @@ def get_wikipedia_data():
 
    image_page_url = "https://en.wikipedia.org/wiki/Template:POTD_protected/" + day_isoformat
    
-   image_data = {
-     "filename": filename,
-     "image_src": image_url,
-     "image_page_url": image_page_url,
-     "date": current_date
-     } 
-   
    with open("feat_picture.jpg", 'w+b') as file:
     response = requests.get(image_url, stream=True, headers = user_agent)
     file.write(response.content)
@@ -236,9 +229,6 @@ def create_post(text: str, wikipedia_data):
         },
     )
     resp.raise_for_status()
-    print(os.getcwd())
-    os.remove("feat_picture.jpg")
-    os.remove("feat_picture_resized.jpg")
 
 def main():
     create_post(text_of_message(), get_wikipedia_data())
