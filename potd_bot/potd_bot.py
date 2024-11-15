@@ -93,15 +93,19 @@ def get_wikipedia_data():
     credit_line = body_text.partition("credit")[2]
     credits = credit_line.partition("\n")[0]
     
-    alt_text = re.sub(r'\s+', ' ', body_text.partition("credit")[0]).strip()
-    cleaned_alt_text = alt_text.rsplit(' ',1)[0]
+    tot_alt_text = re.sub(r'\s+', ' ', body_text.partition("credit")[0]).strip()
+    cleaned_alt_text = tot_alt_text.rsplit(' ',1)[0]
+    
+    img_type = tot_alt_text.rsplit(' ',1)[1].lower()
+    
+    alt_text = cleaned_alt_text + " Type: " + img_type + " Credits" + credits + "."
 
     description_text = soup.body.find('a', attrs={'class':'mw-file-description'})
     title = description_text.get("title")
 #    alt_text = soup.body.find('img', attrs={'class': 'mw-file-element'})
 #    alt = alt_text.get('alt')
 
-    return(image_path, title, cleaned_alt_text, credits)
+    return(image_path, title, alt_text, credits, img_type)
     
 #Define the text of the post
 def text_of_message():
