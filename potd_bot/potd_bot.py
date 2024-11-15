@@ -8,10 +8,8 @@ from typing import Dict, List
 from bs4 import BeautifulSoup
 from PIL import Image
 
-#BLUESKY_HANDLE = os.getenv("BLUESKY_HANDLE")
-#BLUESKY_PASSWORD = os.getenv("BLUESKY_PASSWORD")
-
-os.chdir("/Users/axeljanssen/Documents/Python/bluesky_wiki_bot")
+BLUESKY_HANDLE = os.getenv("BLUESKY_HANDLE")
+BLUESKY_PASSWORD = os.getenv("BLUESKY_PASSWORD")
 
 #Define a function that logs into bluesky, return the access token
 def bsky_login_session(handle: str, password: str) -> Dict:
