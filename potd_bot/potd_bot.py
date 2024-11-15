@@ -113,7 +113,7 @@ def text_of_message():
    wikipedia_data = get_wikipedia_data()
    title = wikipedia_data[1]
    credits=wikipedia_data[3]
-   print_message = f"""The Picture of the Day of {date_it} on @wikipedia.bsky.social is: {title}.\n\nCredit{credits}."""
+   print_message = f"""The Picture of the Day of {date_it} on @wikipedia.bsky.social is: {title}.\n\nCredits{credits}."""
    return(print_message)
 
 #Define function to parse mentions in the message text into facets
