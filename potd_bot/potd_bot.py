@@ -6,7 +6,7 @@ import re
 import os
 from typing import Dict, List
 from bs4 import BeautifulSoup
-from PIL import Image
+from Pillow import Image
 
 #BLUESKY_HANDLE = os.getenv("BLUESKY_HANDLE")
 #BLUESKY_PASSWORD = os.getenv("BLUESKY_PASSWORD")
