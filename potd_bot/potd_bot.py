@@ -98,7 +98,7 @@ def get_wikipedia_data():
     
     img_type = tot_alt_text.rsplit(' ',1)[1].lower()
     
-    alt_text = cleaned_alt_text + " Type: " + img_type + " Credits" + credits + "."
+    alt_text = cleaned_alt_text + " Type: " + img_type + ". Credits" + credits + "."
 
     description_text = soup.body.find('a', attrs={'class':'mw-file-description'})
     title = description_text.get("title")
