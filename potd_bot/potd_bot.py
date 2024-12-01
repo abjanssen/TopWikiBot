@@ -38,7 +38,7 @@ def date_of_interest():
 #Define the function that returns the wikipedia data needed for the post
 def get_wikipedia_data():
    current_date = date.today() - timedelta(0)
-   current_day = current_date.strftime("%-e")
+   current_day = current_date.strftime("%d")
    current_month = current_date.strftime("%m")
    current_year = current_date.strftime("%Y")
    day_isoformat = "{}-{}-{}".format(current_year, current_month, current_day)
