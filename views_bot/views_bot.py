@@ -133,7 +133,7 @@ def text_of_message(nr):
    wikipedia_data = get_wikipedia_data(nr)
    list_top_views = wikipedia_data[1]
    list_top_titles = wikipedia_data[3]   
-   print_message = f"""The top {nr} most viewed @wikipedia.bsky.social articles on {date} were:\n\n"""
+   print_message = f"""The top {nr} most viewed @wikipedia.org articles on {date} were:\n\n"""
    counter = 0 
    for i in range(nr):
        page = list_top_titles[i]
