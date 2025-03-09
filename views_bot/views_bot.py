@@ -133,13 +133,13 @@ def text_of_message(nr):
    wikipedia_data = get_wikipedia_data(nr)
    list_top_views = wikipedia_data[1]
    list_top_titles = wikipedia_data[3]   
-   print_message = f"""The top {nr} most viewed @wikipedia.org articles on {date} were:\n\n"""
+   print_message = f"""The top {nr} most viewed @wikipedia.org articles on {date} were:\n"""
    counter = 0 
    for i in range(nr):
        page = list_top_titles[i]
        views = number_with_thousands_separators(list_top_views[i])
        rank = 1+i
-       text_to_add = f"""{rank}. {page}: {views} times\n"""
+       text_to_add = f"""\n{rank}. {page}: {views} times"""
        print_message += text_to_add
        if counter == nr:
            break
