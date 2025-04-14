@@ -80,6 +80,7 @@ def get_wikipedia_data(nr):
     "Special:Watchlist",
     "Special:RecentChanges",
     "Pornhub",
+    "Onlyfans",
     "YouTube",
     "YouPorn",
     "XVideos",
