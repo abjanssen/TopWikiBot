@@ -231,7 +231,7 @@ def fetch_embed_url_card() -> Dict:
         img_url = image_tag["content"]
         if "://" not in img_url:
             img_url = url + img_url
-        resp = requests.get(img_url, headers = user.agent)
+        resp = requests.get(img_url, headers = user_agent)
         resp.raise_for_status()
 
         blob_resp = requests.post(
