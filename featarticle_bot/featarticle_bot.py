@@ -6,6 +6,7 @@ import re
 import os
 from typing import Dict, List
 from bs4 import BeautifulSoup
+from PIL import Image
 
 BLUESKY_HANDLE = os.getenv("BLUESKY_HANDLE")
 BLUESKY_PASSWORD = os.getenv("BLUESKY_PASSWORD")
@@ -225,6 +226,8 @@ def fetch_embed_url_card() -> Dict:
     description_tag = soup.find("meta", property="og:description")
     if description_tag:
         card["description"] = description_tag["content"]
+
+    image_tag = soup.find("meta", property="og:image")
 
     if image_tag:
         img_url = image_tag["content"]
