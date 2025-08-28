@@ -60,7 +60,7 @@ def get_wikipedia_data(nr):
     list_picture_urls = []
     list_most_viewed_urls = []
     language = "en"
-    user_agent = {"User-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.159 Safari/537.36"}
+    user_agent = {"User-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
 
     yesterday = date.today() - timedelta(days=1)
     year = yesterday.strftime("%Y")
