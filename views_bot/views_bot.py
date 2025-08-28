@@ -60,7 +60,7 @@ def get_wikipedia_data(nr):
     list_picture_urls = []
     list_most_viewed_urls = []
     language = "en"
-    user_agent = {"User-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+    user_agent = {"User-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
 
     yesterday = date.today() - timedelta(days=1)
     year = yesterday.strftime("%Y")
@@ -262,6 +262,8 @@ def fetch_embed_url_card() -> Dict:
     wikipedia_data = get_wikipedia_data(1)
     list_most_viewed_urls = wikipedia_data[2]
     url = fix_url_format(list_most_viewed_urls[0])
+    user_agent = {"User-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+
     IMAGE_MIMETYPE = "image/png"
     
     card = {
@@ -270,7 +272,7 @@ def fetch_embed_url_card() -> Dict:
         "description": "",
     }
 
-    resp = requests.get(url)
+    resp = requests.get(url, headers = user_agent)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -286,7 +288,7 @@ def fetch_embed_url_card() -> Dict:
         img_url = image_tag["content"]
         if "://" not in img_url:
             img_url = url + img_url
-        resp = requests.get(img_url)
+        resp = requests.get(img_url,headers = user_agent)
         resp.raise_for_status()
 
         blob_resp = requests.post(
