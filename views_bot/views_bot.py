@@ -284,6 +284,7 @@ def fetch_embed_url_card() -> Dict:
         card["description"] = description_tag["content"]
 
     image_tag = soup.find("meta", property="og:image")
+    
     if image_tag:
         img_url = image_tag["content"]
         if "://" not in img_url:
@@ -299,13 +300,45 @@ def fetch_embed_url_card() -> Dict:
             },
             data=resp.content,
         )
-        blob_resp.raise_for_status()
-        card["thumb"] = blob_resp.json()["blob"]
+        if blob_resp.json()["blob"]["size"] < 1000000:
+            blob_resp.raise_for_status()
+            card["thumb"] = blob_resp.json()["blob"]
 
+        
+        else:
+            with open("feat_picture.jpg", 'w+b') as file:
+                response = requests.get(image_tag["content"], stream=True, headers = user_agent)
+                file.write(response.content)
+                image = Image.open(file)
+                if image.mode in ("RGBA", "P"):  # P is paletted PNG
+                    image = image.convert("RGB")
+                width, height = image.size
+                new_width = 2000
+                ratio = width / height
+                new_height = new_width / ratio
+                resized_image = image.resize((new_width, round(new_height)))
+                quality_counter = 100 
+                resized_image.save("feat_picture_resized.jpg",optimize=True, quality = quality_counter)
+                while os.path.getsize("feat_picture_resized.jpg") > 1000000: 
+                    quality_counter -= 1
+                    resized_image.save("feat_picture_resized.jpg", optimize=True, quality = quality_counter)
+                with open("feat_picture_resized.jpg", 'rb') as file:
+                    img_bytes= file.read()
+                    blob_resp = requests.post(
+                        "https://bsky.social/xrpc/com.atproto.repo.uploadBlob",
+                        headers={
+                            "Content-Type": IMAGE_MIMETYPE,
+                            "Authorization": "Bearer " + accessJwt,
+                            },
+                        data=img_bytes,
+                        )
+                card["thumb"] = blob_resp.json()["blob"]
+                    
     return {
         "$type": "app.bsky.embed.external",
         "external": card,
-    }
+        }
+
 
 
 def create_post(text: str):
