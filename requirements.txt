@@ -5,3 +5,4 @@ beautifulsoup4==4.12.2
 nltk==3.8.1
 Pillow==10.2.0
 ffmpeg-python==0.2.0
+ffprobe-python==1.0.3
