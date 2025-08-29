@@ -106,14 +106,23 @@ def get_wikipedia_data():
         duration_seconds = float(probe['format']['duration'])
         print(duration_seconds)
         if duration_seconds > 179:
+            print(1)
             input_file = ffmpeg.input("feat_video.webm")
+            print(2)
             pts = "PTS-STARTPTS"
+            print(3)
             video = input_file.trim(start = 0, end = 179).setpts(pts)
+            print(4)
             audio = (input_file.filter_("atrim",start = 0, end = 179).filter_("asetpts", pts))
+            print(5)
             video_audio_concat = ffmpeg.concat(video,audio,v=1,a=1)
+            print(6)
             output_file = ffmpeg.output(video_audio_concat, "feat_video_adapt.webm", format = "webm")
+            print(7)
             output_file.run()
+            print(8)
             os.replace("feat_video_adapt.webm", "feat_video.webm")
+            print(9)
         
         if os.path.getsize("feat_video.webm") > 100_000_000: 
             probe = ffmpeg.probe("feat_video.webm")
