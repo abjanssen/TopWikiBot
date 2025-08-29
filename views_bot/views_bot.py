@@ -7,10 +7,12 @@ import os
 from typing import Dict, List
 from bs4 import BeautifulSoup
 from PIL import Image
+from zoneinfo import ZoneInfo
 
 BLUESKY_HANDLE = os.getenv("BLUESKY_HANDLE")
 BLUESKY_PASSWORD = os.getenv("BLUESKY_PASSWORD")
-    
+USER_AGENT = {"User-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+   
 #Define a function that logs into bluesky, return the access token
 def bsky_login_session(handle: str, password: str) -> Dict:
     resp = requests.post(
@@ -18,58 +20,37 @@ def bsky_login_session(handle: str, password: str) -> Dict:
         json={"identifier": handle, "password": password})
     resp.raise_for_status()
     resp_data = resp.json()
-    jwt = resp_data["accessJwt"]
-    did = resp_data["did"]
-    return(did, jwt)
-
-#Define function that turns the raw number of the amount of views into a printable number with thousands separators
-def number_with_thousands_separators(nr):
-    nr = str(nr)
-    thousands_separator = "."
-    print_amount = ""
-    counter = 0
-    if len(nr) > 5:
-        for i in range(len(nr)-1,-1,-1):
-            counter += 1
-            print_amount = nr[i] + print_amount
-            if counter % 3 == 0:
-                print_amount = thousands_separator + print_amount
-        if print_amount[0] == thousands_separator:
-            print_amount = print_amount[1:]
-    return(print_amount)
+    return(resp_data["did"], resp_data["accessJwt"])
 
 #Define function to get the date in the printable form needed
 def date_of_interest():
-    yesterday = date.today() - timedelta(days=1)
-    year = yesterday.strftime("%Y")
-    month = yesterday.strftime("%m")
-    day = yesterday.strftime("%d")
-    day_adapted = yesterday.strftime("%-e")
+    dateofinterest = date.today() - timedelta(days=1)
+    year = dateofinterest.strftime("%Y")
+    month = dateofinterest.strftime("%m")
+    day = dateofinterest.strftime("%d")
+    day_nonzero = dateofinterest.strftime("%-e")
+    
     specified_date = datetime(int(year), int(month), int(day))
+    
     day_name = specified_date.strftime('%A')
     month_name = specified_date.strftime('%B')
-    print_date = """{} {} {} {}""".format(day_name, day_adapted, month_name, year)
-    return(print_date)
+    
+    print_date = """{} {} {} {}""".format(day_name, day_nonzero, month_name, year)
+    
+    return(print_date, year, month, day)
 
 #Define the function that returns the wikipedia data needed for the post
 def get_wikipedia_data(nr):
     list_top_pages = []
     list_top_views = []
-    counter = 0
     list_top_titles = []
     page_picture_url = []
     list_picture_urls = []
     list_most_viewed_urls = []
+    
+    counter = 0
     language = "en"
-    user_agent = {"User-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
-
-    yesterday = date.today() - timedelta(days=1)
-    year = yesterday.strftime("%Y")
-    month = yesterday.strftime("%m")
-    day = yesterday.strftime("%d")
-    req_url = "https://wikimedia.org/api/rest_v1/metrics/pageviews/top/{}.wikipedia.org/all-access/{}/{}/{}".format(language, year, month, day)
-    r = requests.get(req_url, headers = user_agent)
-    response_data = r.json()
+    year, month, day = date_of_interest()[1:4]
     
     list_of_filtered_pages = [
     "Main_Page",
@@ -89,23 +70,28 @@ def get_wikipedia_data(nr):
     ".xxx",
     "xHamster",
     ]
+    
+    req_url = "https://wikimedia.org/api/rest_v1/metrics/pageviews/top/{}.wikipedia.org/all-access/{}/{}/{}".format(language, year, month, day)
+    resp = requests.get(req_url, headers = USER_AGENT)
+    resp_data = resp.json()
+    
     nr_for_loop = nr+10
     for i in range(nr_for_loop):
-        test_page = response_data["items"][0]["articles"][i]['article']
+        test_page = resp_data["items"][0]["articles"][i]['article']
         if test_page in list_of_filtered_pages:
             continue
         else:
-            test_page = response_data["items"][0]["articles"][i]['article']
+            test_page = resp_data["items"][0]["articles"][i]['article']
             list_top_pages.append(test_page)
             
-            test_page_views = response_data["items"][0]["articles"][i]['views']
+            test_page_views = resp_data["items"][0]["articles"][i]['views']
             list_top_views.append(test_page_views)
             
             url = "https:/{}.wikipedia.org/wiki/{}".format(language, test_page)
             list_most_viewed_urls.append(url)
             
             page_info_req_url = "https://{}.wikipedia.org/w/api.php?action=query&prop=pageimages&format=json&piprop=original&titles={}".format(language, test_page)
-            page_info_r = requests.get(page_info_req_url, headers = user_agent)
+            page_info_r = requests.get(page_info_req_url, headers = USER_AGENT)
             page_info_response_data = page_info_r.json()
             number_dict = page_info_response_data["query"]["pages"]
             number = list(number_dict.keys())[0]
@@ -131,15 +117,16 @@ def get_wikipedia_data(nr):
 
 #Define the text of the post
 def text_of_message(nr):
-   date = date_of_interest()
+   date = date_of_interest()[0]
    wikipedia_data = get_wikipedia_data(nr)
    list_top_views = wikipedia_data[1]
    list_top_titles = wikipedia_data[3]   
    print_message = f"""The top {nr} most viewed @wikipedia.org articles on {date} were:\n"""
    counter = 0 
+   
    for i in range(nr):
        page = list_top_titles[i]
-       views = number_with_thousands_separators(list_top_views[i])
+       views = f"{list_top_views[i]:,}".replace(",", ".")
        rank = 1+i
        text_to_add = f"""\n{rank}. {page}: {views} times"""
        print_message += text_to_add
@@ -263,9 +250,8 @@ def fetch_embed_url_card() -> Dict:
     wikipedia_data = get_wikipedia_data(1)
     list_most_viewed_urls = wikipedia_data[2]
     url = fix_url_format(list_most_viewed_urls[0])
-    user_agent = {"User-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
 
-    IMAGE_MIMETYPE = "image/png"
+    image_mimetype = "image/png"
     
     card = {
         "uri": url,
@@ -273,30 +259,31 @@ def fetch_embed_url_card() -> Dict:
         "description": "",
     }
 
-    resp = requests.get(url, headers = user_agent)
+    resp = requests.get(url, headers = USER_AGENT)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
     title_tag = soup.find("meta", property="og:title")
+    description_tag = soup.find("meta", property="og:description")
+    image_tag = soup.find("meta", property="og:image")
+    
     if title_tag:
         card["title"] = title_tag["content"]
-    description_tag = soup.find("meta", property="og:description")
     if description_tag:
         card["description"] = description_tag["content"]
 
-    image_tag = soup.find("meta", property="og:image")
     
     if image_tag:
         img_url = image_tag["content"]
         if "://" not in img_url:
             img_url = url + img_url
-        resp = requests.get(img_url,headers = user_agent)
+        resp = requests.get(img_url,headers = USER_AGENT)
         resp.raise_for_status()
 
         blob_resp = requests.post(
             "https://bsky.social/xrpc/com.atproto.repo.uploadBlob",
             headers={
-                "Content-Type": IMAGE_MIMETYPE,
+                "Content-Type": image_mimetype,
                 "Authorization": "Bearer " + accessJwt,
             },
             data=resp.content,
@@ -308,7 +295,7 @@ def fetch_embed_url_card() -> Dict:
         
         else:
             with open("feat_picture.jpg", 'w+b') as file:
-                response = requests.get(image_tag["content"], stream=True, headers = user_agent)
+                response = requests.get(image_tag["content"], stream=True, headers = USER_AGENT)
                 file.write(response.content)
                 image = Image.open(file)
                 if image.mode in ("RGBA", "P"):  # P is paletted PNG
@@ -328,7 +315,7 @@ def fetch_embed_url_card() -> Dict:
                     blob_resp = requests.post(
                         "https://bsky.social/xrpc/com.atproto.repo.uploadBlob",
                         headers={
-                            "Content-Type": IMAGE_MIMETYPE,
+                            "Content-Type": image_mimetype,
                             "Authorization": "Bearer " + accessJwt,
                             },
                         data=img_bytes,
@@ -344,26 +331,19 @@ def fetch_embed_url_card() -> Dict:
 
 def create_post(text: str):
     session = bsky_login_session(BLUESKY_HANDLE, BLUESKY_PASSWORD)
-    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    now = datetime.now(ZoneInfo("Europe/Zurich")).isoformat()
     language = "en-US"
+    facets = parse_facets(text)
+    embed_url_card = fetch_embed_url_card()
     
     post = {
         "$type": "app.bsky.feed.post",
         "text": text,
         "createdAt": now,
-        "langs": [language],}
-
-    if len(text) > 0:
-        facets = parse_facets(post["text"])
-        if facets:
-            post["facets"] = facets
-
-    wikipedia_data = get_wikipedia_data(1)
-    list_most_viewed_urls = wikipedia_data[2]
-    url = fix_url_format(list_most_viewed_urls[0])
-    if len(url) > 0: 
-         url_card = fetch_embed_url_card()
-         post["embed"] = url_card
+        "langs": [language],
+        "facets": facets,
+        "embed": embed_url_card,
+        }
 
     resp = requests.post(
         "https://bsky.social/xrpc/com.atproto.repo.createRecord",
