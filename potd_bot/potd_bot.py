@@ -24,7 +24,7 @@ def bsky_login_session(handle: str, password: str) -> Dict:
 
 #Define function to get the date in the printable form needed
 def date_of_interest():
-    today = date.today() - timedelta(11)
+    today = date.today() - timedelta(20)
     year = today.strftime("%Y")
     month = today.strftime("%m")
     day = today.strftime("%d")
@@ -103,6 +103,7 @@ def get_wikipedia_data():
             file.write(response.content)
         probe = ffmpeg.probe("feat_video.webm")
         duration_seconds = float(probe['format']['duration'])
+        print(duration_seconds)
         if duration_seconds > 179:
             input_file = ffmpeg.input("feat_video.webm")
             pts = "PTS-STARTPTS"
@@ -118,6 +119,7 @@ def get_wikipedia_data():
             video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
             width = int(video_stream['width'])
             height = int(video_stream['height'])
+            print(width)
             if width > 720: 
                 input_file = ffmpeg.input("feat_video.webm")
                 ffmpeg.input("feat_video.webm").filter("scale", 720, -1).output("feat_video_adapt.webm").run()
@@ -126,6 +128,7 @@ def get_wikipedia_data():
         if os.path.getsize("feat_video.webm") > 100_000_000: 
             probe = ffmpeg.probe("feat_video.webm")
             audio_bitrate = float(next((s for s in probe['streams'] if s['codec_type'] == 'audio'), None)['bit_rate'])
+            print(audio_bitrate)
             if audio_bitrate > 128_000:
                 input = ffmpeg.input("feat_video.webm")
                 ffmpeg.output(input, "feat_video_adapt.webm", **{'c:v': 'libvpx-vp9', 'c:a': 'libopus', 'b:a': 128_000}).overwrite_output().run()
@@ -134,7 +137,7 @@ def get_wikipedia_data():
         if os.path.getsize("feat_video.webm") > 100_000_000: 
             probe = ffmpeg.probe("feat_video.webm")
             video_bitrate = float(next((s for s in probe['streams'] if s['codec_type'] == 'video'), None)['bit_rate'])
-                        
+            print(video_bitrate)
             if video_bitrate > 2_500_000:
                 input = ffmpeg.input("feat_video.webm")
                 ffmpeg.output(input, "feat_video_adapt.webm", **{'c:v': 'libvpx-vp9', 'c:a': 'libopus', 'b:v': 2_500_000}).overwrite_output().run()
