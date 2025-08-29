@@ -24,7 +24,7 @@ def bsky_login_session(handle: str, password: str) -> Dict:
 
 #Define function to get the date in the printable form needed
 def date_of_interest():
-    today = date.today()
+    today = date.today() - timedelta(11)
     year = today.strftime("%Y")
     month = today.strftime("%m")
     day = today.strftime("%d")
@@ -97,6 +97,7 @@ def get_wikipedia_data():
         description_text = soup.body.find('a', attrs={'class':'mw-file-description'})
         title = description_text.get("title")
    elif image_url.lower().endswith(".webm"):
+        print("VIDEO")
         with open("feat_video.webm", 'w+b') as file:
             response = requests.get(image_url, stream=True, headers = USER_AGENT)
             file.write(response.content)
