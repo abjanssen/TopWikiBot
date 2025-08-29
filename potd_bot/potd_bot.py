@@ -7,9 +7,11 @@ import os
 from typing import Dict, List
 from bs4 import BeautifulSoup
 from PIL import Image
+import ffmpeg
 
 BLUESKY_HANDLE = os.getenv("BLUESKY_HANDLE")
 BLUESKY_PASSWORD = os.getenv("BLUESKY_PASSWORD")
+USER_AGENT = {"User-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
 
 #Define a function that logs into bluesky, return the access token
 def bsky_login_session(handle: str, password: str) -> Dict:
@@ -18,31 +20,29 @@ def bsky_login_session(handle: str, password: str) -> Dict:
         json={"identifier": handle, "password": password})
     resp.raise_for_status()
     resp_data = resp.json()
-    jwt = resp_data["accessJwt"]
-    did = resp_data["did"]
-    return(did, jwt)
+    return(resp_data["did"], resp_data["accessJwt"])
 
 #Define function to get the date in the printable form needed
 def date_of_interest():
-    current_day = date.today()
-    year = current_day.strftime("%Y")
-    month = current_day.strftime("%m")
-    dayofmonth = current_day.strftime("%d")
-    day_adapted = current_day.strftime("%-e")
-    specified_date = datetime(int(year), int(month), int(dayofmonth))
+    today = date.today()
+    year = today.strftime("%Y")
+    month = today.strftime("%m")
+    day = today.strftime("%d")
+    day_nonzero = today.strftime("%-e")
+    
+    specified_date = datetime(int(year), int(month), int(day))
+    
     day_name = specified_date.strftime('%A')
     month_name = specified_date.strftime('%B')
-    print_date = """{} {} {} {}""".format(day_name, day_adapted, month_name, year)
-    return(print_date)
+    
+    print_date = """{} {} {} {}""".format(day_name, day_nonzero, month_name, year)
+    
+    return(print_date, year, month, day)
 
 #Define the function that returns the wikipedia data needed for the post
 def get_wikipedia_data():
-   current_date = date.today() - timedelta(0)
-   current_day = current_date.strftime("%d")
-   current_month = current_date.strftime("%m")
-   current_year = current_date.strftime("%Y")
+   current_year, current_month, current_day = date_of_interest()[1:4]
    day_isoformat = "{}-{}-{}".format(current_year, current_month, current_day)
-   user_agent = {"User-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.159 Safari/537.36"}
    
    params = {
      "action": "query",
@@ -51,9 +51,9 @@ def get_wikipedia_data():
      "prop": "images",
      "titles": "Template:POTD protected/" + day_isoformat
      }
-   r = requests.Session().get(url = "https://en.wikipedia.org/w/api.php", params=params, headers = user_agent)
-   response_data = r.json() 
-   filename = response_data["query"]["pages"][0]["images"][0]["title"]
+   resp = requests.Session().get(url = "https://en.wikipedia.org/w/api.php", params=params, headers = USER_AGENT)
+   resp_data = resp.json() 
+   filename = resp_data["query"]["pages"][0]["images"][0]["title"]
     
    params = {
     "action": "query",
@@ -62,54 +62,105 @@ def get_wikipedia_data():
     "iiprop": "url",
     "titles": filename
     }
-   r = requests.Session().get(url="https://en.wikipedia.org/w/api.php", params=params, headers = user_agent)
-   response_data = r.json()
-   page = next(iter(response_data["query"]["pages"].values()))
+   resp = requests.Session().get(url = "https://en.wikipedia.org/w/api.php", params=params, headers = USER_AGENT)
+   resp_data = resp.json()
+   page = next(iter(resp_data["query"]["pages"].values()))
    image_info = page["imageinfo"][0]
    image_url = image_info["url"]
-
    image_page_url = "https://en.wikipedia.org/wiki/Template:POTD_protected/" + day_isoformat
    
-   with open("feat_picture.jpg", 'w+b') as file:
-    response = requests.get(image_url, stream=True, headers = user_agent)
-    file.write(response.content)
-    image = Image.open(file)
-    width, height = image.size
-    new_width = 2000
-    ratio = width / height
-    new_height = new_width / ratio
-    resized_image = image.resize((new_width, round(new_height)))
-    quality_counter = 100 
-    resized_image.save("feat_picture_resized.jpg",optimize=True, quality = quality_counter)
-    while os.path.getsize("feat_picture_resized.jpg") > 1000000: 
-        quality_counter -= 1
-        resized_image.save("feat_picture_resized.jpg", optimize=True, quality = quality_counter)
-    image_path = os.getcwd() + "/feat_picture_resized.jpg"
+   if image_url.lower().endswith(".jpg"):
+       with open("feat_picture.jpg", 'w+b') as file:
+        response = requests.get(image_url, stream=True, headers = USER_AGENT)
+        file.write(response.content)
+        image = Image.open(file)
+        width, height = image.size
+        new_width = 2000
+        ratio = width / height
+        new_height = new_width / ratio
+        resized_image = image.resize((new_width, round(new_height)))
+        quality_counter = 100 
+        resized_image.save("feat_picture_resized.jpg",optimize=True, quality = quality_counter)
+        while os.path.getsize("feat_picture_resized.jpg") > 1_000_000: 
+            quality_counter -= 1
+            resized_image.save("feat_picture_resized.jpg", optimize=True, quality = quality_counter)
+        final_path = os.getcwd() + "/feat_picture_resized.jpg"
+        response = requests.get(image_page_url, headers = USER_AGENT)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        body_text = soup.body.find('div', attrs={'class':'mw-body-content'}).text
+        credit_line = body_text.partition("credit")[2]
+        credits = credit_line.partition("\n")[0]
+        tot_alt_text = re.sub(r'\s+', ' ', body_text.partition("credit")[0]).strip()
+        cleaned_alt_text = tot_alt_text.rsplit(' ',1)[0]
+        img_type = tot_alt_text.rsplit(' ',1)[1].lower()
+        alt_text = cleaned_alt_text + " Type: " + img_type + ". Credits" + credits + "."
+        description_text = soup.body.find('a', attrs={'class':'mw-file-description'})
+        title = description_text.get("title")
+   elif image_url.lower().endswith(".webm"):
+        with open("feat_video.webm", 'w+b') as file:
+            response = requests.get(image_url, stream=True, headers = USER_AGENT)
+            file.write(response.content)
+        probe = ffmpeg.probe("feat_video.webm")
+        duration_seconds = float(probe['format']['duration'])
+        if duration_seconds > 179:
+            input_file = ffmpeg.input("feat_video.webm")
+            pts = "PTS-STARTPTS"
+            video = input_file.trim(start = 0, end = 179).setpts(pts)
+            audio = (input_file.filter_("atrim",start = 0, end = 179).filter_("asetpts", pts))
+            video_audio_concat = ffmpeg.concat(video,audio,v=1,a=1)
+            output_file = ffmpeg.output(video_audio_concat, "feat_video_adapt.webm", format = "webm")
+            output_file.run()
+            os.replace("feat_video_adapt.webm", "feat_video.webm")
         
-    response = requests.get(image_page_url, headers = user_agent)
-    soup = BeautifulSoup(response.text, 'html.parser')
+        if os.path.getsize("feat_video.webm") > 100_000_000: 
+            probe = ffmpeg.probe("feat_video.webm")
+            video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
+            width = int(video_stream['width'])
+            height = int(video_stream['height'])
+            if width > 720: 
+                input_file = ffmpeg.input("feat_video.webm")
+                ffmpeg.input("feat_video.webm").filter("scale", 720, -1).output("feat_video_adapt.webm").run()
+                os.replace("feat_video_adapt.webm", "feat_video.webm")
+                
+        if os.path.getsize("feat_video.webm") > 100_000_000: 
+            probe = ffmpeg.probe("feat_video.webm")
+            audio_bitrate = float(next((s for s in probe['streams'] if s['codec_type'] == 'audio'), None)['bit_rate'])
+            if audio_bitrate > 128_000:
+                input = ffmpeg.input("feat_video.webm")
+                ffmpeg.output(input, "feat_video_adapt.webm", **{'c:v': 'libvpx-vp9', 'c:a': 'libopus', 'b:a': 128_000}).overwrite_output().run()
+                os.replace("feat_video_adapt.webm", "feat_video.webm")
+        
+        if os.path.getsize("feat_video.webm") > 100_000_000: 
+            probe = ffmpeg.probe("feat_video.webm")
+            video_bitrate = float(next((s for s in probe['streams'] if s['codec_type'] == 'video'), None)['bit_rate'])
+                        
+            if video_bitrate > 2_500_000:
+                input = ffmpeg.input("feat_video.webm")
+                ffmpeg.output(input, "feat_video_adapt.webm", **{'c:v': 'libvpx-vp9', 'c:a': 'libopus', 'b:v': 2_500_000}).overwrite_output().run()
+                os.replace("feat_video_adapt.webm", "feat_video.webm")
+                
+        final_path = os.getcwd() + "/feat_video.webm"
+        
+        response = requests.get(image_page_url, headers = USER_AGENT)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        body_text = soup.body.find('div', attrs={'class':'mw-body-content'}).text
+        credit_line = body_text.partition("credit")[2]
+        credits = credit_line.partition("\n")[0]
+        tot_alt_text = re.sub(r'\s+', ' ', body_text.partition("credit")[0]).strip()
+        cleaned_alt_text = tot_alt_text.rsplit(' ',1)[0]
+        img_type = tot_alt_text.rsplit(' ',1)[1].lower()
+        alt_text = cleaned_alt_text + " Type: " + img_type + ". Credits" + credits + "."
+        description_text = soup.body.find('a', attrs={'class':'mw-file-description'})
+        title = description_text.get("title")
+        
+   else:
+        pass        
 
-    body_text = soup.body.find('div', attrs={'class':'mw-body-content'}).text
-    credit_line = body_text.partition("credit")[2]
-    credits = credit_line.partition("\n")[0]
-    
-    tot_alt_text = re.sub(r'\s+', ' ', body_text.partition("credit")[0]).strip()
-    cleaned_alt_text = tot_alt_text.rsplit(' ',1)[0]
-    
-    img_type = tot_alt_text.rsplit(' ',1)[1].lower()
-    
-    alt_text = cleaned_alt_text + " Type: " + img_type + ". Credits" + credits + "."
-
-    description_text = soup.body.find('a', attrs={'class':'mw-file-description'})
-    title = description_text.get("title")
-#    alt_text = soup.body.find('img', attrs={'class': 'mw-file-element'})
-#    alt = alt_text.get('alt')
-
-    return(image_path, title, alt_text, credits, img_type)
+   return(final_path, title, alt_text, credits, img_type)
     
 #Define the text of the post
 def text_of_message():
-   date_it = date_of_interest()
+   date_it = date_of_interest()[0]
    wikipedia_data = get_wikipedia_data()
    title = wikipedia_data[1]
    credits=wikipedia_data[3]
