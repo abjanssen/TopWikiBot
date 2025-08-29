@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 import requests
 from datetime import date, timedelta, datetime, timezone
@@ -7,9 +6,12 @@ import os
 from typing import Dict, List
 from bs4 import BeautifulSoup
 from PIL import Image
+from zoneinfo import ZoneInfo
 
+#Defien global variables for easy use
 BLUESKY_HANDLE = os.getenv("BLUESKY_HANDLE")
 BLUESKY_PASSWORD = os.getenv("BLUESKY_PASSWORD")
+USER_AGENT = {"User-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
     
 #Define a function that logs into bluesky, return the access token
 def bsky_login_session(handle: str, password: str) -> Dict:
@@ -18,68 +20,61 @@ def bsky_login_session(handle: str, password: str) -> Dict:
         json={"identifier": handle, "password": password})
     resp.raise_for_status()
     resp_data = resp.json()
-    jwt = resp_data["accessJwt"]
-    did = resp_data["did"]
-    return(did, jwt)
+    return(resp_data["did"], resp_data["accessJwt"])
 
 #Define function to get the date in the printable form needed
 def date_of_interest():
-    current_day = date.today()
-    year = current_day.strftime("%Y")
-    month = current_day.strftime("%m")
-    dayofmonth = current_day.strftime("%d")
-    day_adapted = current_day.strftime("%-e")
-    specified_date = datetime(int(year), int(month), int(dayofmonth))
+    today = date.today()
+    year = today.strftime("%Y")
+    month = today.strftime("%m")
+    day = today.strftime("%d")
+    day_nonzero = today.strftime("%-e")
+    
+    specified_date = datetime(int(year), int(month), int(day))
+    
     day_name = specified_date.strftime('%A')
     month_name = specified_date.strftime('%B')
-    print_date = """{} {} {} {}""".format(day_name, day_adapted, month_name, year)
-    return(print_date)
+    
+    print_date = """{} {} {} {}""".format(day_name, day_nonzero, month_name, year)
+    
+    return(print_date, year, month, day)
 
 #Define the function that returns the wikipedia data needed for the post
 def get_wikipedia_data():
-    today_feat_article = []
-    page_picture_url = []
     language = "en"
-    user_agent = {"User-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+    year, month, day = date_of_interest()[1:4]
 
-    current_day = date.today()
-    year = current_day.strftime("%Y")
-    month = current_day.strftime("%m")
-    day = current_day.strftime("%d")
     req_url = "https://{}.wikipedia.org/api/rest_v1/feed/featured/{}/{}/{}".format(language, year, month, day)
-    r = requests.get(req_url, headers = user_agent)
-    response_data = r.json()
+    resp = requests.get(req_url, headers = USER_AGENT)
+    resp_data = resp.json()
     
-    today_feat_article = response_data["tfa"]
+    today_feat_article = resp_data["tfa"]
+
     title = today_feat_article["normalizedtitle"]
     url = today_feat_article["content_urls"]["desktop"]["page"]
+    text = today_feat_article["extract"].split(".")
+    title_url = today_feat_article["title"]
     
-    text=today_feat_article["extract"].split(".")
-    
-    page_info_req_url = "https://{}.wikipedia.org/w/api.php?action=query&prop=pageimages&format=json&piprop=original&titles={}".format(language, today_feat_article["title"])
-    page_info_r = requests.get(page_info_req_url, headers = user_agent)
-    page_info_response_data = page_info_r.json()
-    number_dict = page_info_response_data["query"]["pages"]
+    page_info_req_url = "https://{}.wikipedia.org/w/api.php?action=query&prop=pageimages&format=json&piprop=original&titles={}".format(language, title_url)
+    page_info_resp = requests.get(page_info_req_url, headers = USER_AGENT)
+    page_info_resp_data = page_info_resp.json()
+    number_dict = page_info_resp_data["query"]["pages"]
     number = list(number_dict.keys())[0]
     
-    if ('original' in page_info_response_data['query']['pages'][number]):
-        try:
-            page_picture_url = page_info_response_data["query"]["pages"][number]["original"]["source"]
-        except:
-            page_picture_url = None
-        else:
-            page_picture_url = None  
+    if ('original' in page_info_resp_data['query']['pages'][number]):
+        page_picture_url = page_info_resp_data["query"]["pages"][number]["original"]["source"]
+    else:
+        page_picture_url = None
     
     return(title,url,page_picture_url,text)
-    
 
 #Define the text of the post
 def text_of_message():
-   date_it = date_of_interest()
+   date_it = date_of_interest()[0]
    character_limit=300
    wikipedia_data = get_wikipedia_data()
    title = wikipedia_data[0]
-   text=wikipedia_data[3]
+   text = wikipedia_data[3]
    print_message = f"""The Featured Article of {date_it} on @wikipedia.org is: {title}.\n\n"""
    
    for i in range(len(text)):
@@ -90,7 +85,6 @@ def text_of_message():
            break
 
    return(print_message)
-   
 
 def fix_url_format(url):
    match = re.search(r'en\.wikipedia\.org\/.*', url)
@@ -146,25 +140,6 @@ def parse_uri(uri: str) -> Dict:
     else:
         raise Exception("unhandled URI format: " + uri)
         
-#not sure why this is needed for now, but the function is needed it seems   
-def get_embed_ref(pds_url: str, ref_uri: str) -> Dict:
-    uri_parts = parse_uri(ref_uri)
-    resp = requests.get(
-        "https://bsky.social/xrpc/com.atproto.repo.getRecord",
-        params=uri_parts,
-    )
-    print(resp.json())
-    resp.raise_for_status()
-    record = resp.json()
-
-    return {
-        "$type": "app.bsky.embed.record",
-        "record": {
-            "uri": record["uri"],
-            "cid": record["cid"],
-        },
-    }
-        
 #Define function to turn facets into bluesky objects text and return list of bluesky objects
 def parse_facets(text: str) -> List[Dict]:
     facets = []
@@ -203,12 +178,11 @@ def parse_facets(text: str) -> List[Dict]:
 
 #Define the function to fetch the embeded URL card for the top page
 def fetch_embed_url_card() -> Dict:
-    accessJwt = bsky_login_session(BLUESKY_HANDLE,BLUESKY_PASSWORD)[1]
-    wikipedia_url=get_wikipedia_data()[1]
+    accessJWT = bsky_login_session(BLUESKY_HANDLE,BLUESKY_PASSWORD)[1]
+    wikipedia_url = get_wikipedia_data()[1]
     url = fix_url_format(wikipedia_url)
-    user_agent = {"User-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
-
-    IMAGE_MIMETYPE = "image/png"
+    image_mimetype = "image/png"
+    max_size = 1_000_000
     
     card = {
         "uri": url,
@@ -216,42 +190,42 @@ def fetch_embed_url_card() -> Dict:
         "description": "",
     }
 
-    resp = requests.get(url, headers = user_agent)
+    resp = requests.get(url, headers = USER_AGENT)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
     title_tag = soup.find("meta", property="og:title")
+    description_tag = soup.find("meta", property="og:description")
+    image_tag = soup.find("meta", property="og:image")
+    
     if title_tag:
         card["title"] = title_tag["content"]
-    description_tag = soup.find("meta", property="og:description")
+    
     if description_tag:
         card["description"] = description_tag["content"]
-
-    image_tag = soup.find("meta", property="og:image")
 
     if image_tag:
         img_url = image_tag["content"]
         if "://" not in img_url:
             img_url = url + img_url
-        resp = requests.get(img_url,headers = user_agent)
+        resp = requests.get(img_url,headers = USER_AGENT)
         resp.raise_for_status()
 
         blob_resp = requests.post(
             "https://bsky.social/xrpc/com.atproto.repo.uploadBlob",
             headers={
-                "Content-Type": IMAGE_MIMETYPE,
-                "Authorization": "Bearer " + accessJwt,
+                "Content-Type": image_mimetype,
+                "Authorization": "Bearer " + accessJWT,
             },
             data=resp.content,
         )
-        if blob_resp.json()["blob"]["size"] < 1000000:
+        if blob_resp.json()["blob"]["size"] < max_size:
             blob_resp.raise_for_status()
             card["thumb"] = blob_resp.json()["blob"]
-
         
         else:
             with open("feat_picture.jpg", 'w+b') as file:
-                response = requests.get(image_tag["content"], stream=True, headers = user_agent)
+                response = requests.get(image_tag["content"], stream=True, headers = USER_AGENT)
                 file.write(response.content)
                 image = Image.open(file)
                 if image.mode in ("RGBA", "P"):  # P is paletted PNG
@@ -263,7 +237,7 @@ def fetch_embed_url_card() -> Dict:
                 resized_image = image.resize((new_width, round(new_height)))
                 quality_counter = 100 
                 resized_image.save("feat_picture_resized.jpg",optimize=True, quality = quality_counter)
-                while os.path.getsize("feat_picture_resized.jpg") > 1000000: 
+                while os.path.getsize("feat_picture_resized.jpg") > max_size: 
                     quality_counter -= 1
                     resized_image.save("feat_picture_resized.jpg", optimize=True, quality = quality_counter)
                 with open("feat_picture_resized.jpg", 'rb') as file:
@@ -271,8 +245,8 @@ def fetch_embed_url_card() -> Dict:
                     blob_resp = requests.post(
                         "https://bsky.social/xrpc/com.atproto.repo.uploadBlob",
                         headers={
-                            "Content-Type": IMAGE_MIMETYPE,
-                            "Authorization": "Bearer " + accessJwt,
+                            "Content-Type": image_mimetype,
+                            "Authorization": "Bearer " + accessJWT,
                             },
                         data=img_bytes,
                         )
@@ -285,34 +259,28 @@ def fetch_embed_url_card() -> Dict:
 
 
 def create_post(text: str):
-    session = bsky_login_session(BLUESKY_HANDLE, BLUESKY_PASSWORD)
-    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    did, accessJWT = bsky_login_session(BLUESKY_HANDLE, BLUESKY_PASSWORD)
+    time = datetime.now(ZoneInfo("Europe/Zurich")).isoformat()
+    facets = parse_facets(text)
+    embed_url_card = fetch_embed_url_card()
     language = "en-US"
     
     post = {
         "$type": "app.bsky.feed.post",
         "text": text,
-        "createdAt": now,
-        "langs": [language],}
-
-    if len(text) > 0:
-        facets = parse_facets(post["text"])
-        if facets:
-            post["facets"] = facets
-
-    wikipedia_url=get_wikipedia_data()[1]
-    url = fix_url_format(wikipedia_url)
-    if len(url) > 0: 
-         url_card = fetch_embed_url_card()
-         post["embed"] = url_card
+        "createdAt": time,
+        "langs": [language],
+        "facets": facets,
+        "embed": embed_url_card
+        }
     
     resp = requests.post(
         "https://bsky.social/xrpc/com.atproto.repo.createRecord",
-        headers={"Authorization": "Bearer " + session[1]},
+        headers={"Authorization": "Bearer " + accessJWT},
         json={
-            "repo": session[0],
+            "repo": did,
             "collection": "app.bsky.feed.post",
-            "record": post,
+            "record": post
         },
     )
     resp.raise_for_status()
