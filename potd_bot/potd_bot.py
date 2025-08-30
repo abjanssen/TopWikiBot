@@ -131,7 +131,6 @@ def get_wikipedia_data():
             video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
             width = int(video_stream['width'])
             height = int(video_stream['height'])
-            print(width)
             if width > 720: 
                 input_file = ffmpeg.input("feat_video.webm")
                 ffmpeg.input("feat_video.webm").filter("scale", 720, -1).output("feat_video_adapt.webm").run()
@@ -262,6 +261,7 @@ def parse_urls(text: str) -> List[Dict]:
 def create_post(text: str, wikipedia_data):
     image_path = wikipedia_data[0]
     alt = wikipedia_data[2]
+    file_type_movie = wikipedia_data[5]
     session = bsky_login_session(BLUESKY_HANDLE, BLUESKY_PASSWORD)
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     language = "en-US"
@@ -276,29 +276,39 @@ def create_post(text: str, wikipedia_data):
         },
         data=img_bytes,
         )
-        
+    print(1)    
     resp.raise_for_status()
     blob = resp.json()["blob"]
-    
+    print(2)
     post = {
         "$type": "app.bsky.feed.post",
         "text": text,
         "createdAt": now,
         "langs": [language],}
-    
-    post["embed"] = {
-    "$type": "app.bsky.embed.images",
-    "images": [{
-        "alt": alt,
-        "image": blob,
-    }],
-    }
+    print(3)
+    if not file_type_movie:
+        post["embed"] = {
+        "$type": "app.bsky.embed.images",
+        "images": [{
+            "alt": alt,
+            "image": blob,
+        }],
+        }
+    print(4)
+    if file_type_movie:
+        post["embed"] = {
+            "type": "app.bsky.embed.video",
+            "video": blob,
+            "aspectRatio": 1412 / 1080,
+            }
+    print(5)
 
     if len(text) > 0:
         facets = parse_facets(post["text"])
         if facets:
             post["facets"] = facets
-    
+    print(6)
+
     resp = requests.post(
         "https://bsky.social/xrpc/com.atproto.repo.createRecord",
         headers={"Authorization": "Bearer " + session[1]},
@@ -308,7 +318,9 @@ def create_post(text: str, wikipedia_data):
             "record": post,
         },
     )
+    print(7)
     resp.raise_for_status()
+    print(8)
 
 def main():
     create_post(text_of_message(), get_wikipedia_data())
