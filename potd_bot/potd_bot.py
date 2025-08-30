@@ -120,7 +120,9 @@ def get_wikipedia_data():
             probe = ffmpeg.probe("feat_video_adapt.webm")
             duration_seconds = float(probe['format']['duration'])
             print("new duration", duration_seconds)
-            video_bitrate = float(next((s for s in probe['streams'] if s['codec_type'] == 'video'), None)['bit_rate'])
+            bitrate = next(s for s in probe['streams'] if s['codec_type'] == 'video')
+            video_bitrate = int(int(bitrate['bit_rate']) / 1000)
+
             print("new video bitrate", video_bitrate)
             audio_stream = next((stream for stream in probe["streams"] if stream["codec_type"] == "audio"), None)
             if audio_stream and "bit_rate" in audio_stream:
