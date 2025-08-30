@@ -108,7 +108,7 @@ def get_wikipedia_data():
         print("original file size", os.path.getsize("feat_video.webm"))
         if duration_seconds > 179:
             print(1)
-            input_file = ffmpeg.input("feat_video.webm", ss="00:00:00", to="00:03:00")
+            input_file = ffmpeg.input("feat_video.webm", ss="00:00:00", to="00:00:10")
             print(2)
             #trim_file = ffmpeg.trim(input_file, start = 0, end = 10)
             #print(3)
