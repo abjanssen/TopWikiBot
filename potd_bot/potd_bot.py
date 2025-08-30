@@ -25,7 +25,7 @@ def bsky_login_session(handle: str, password: str) -> Dict:
 
 #Define function to get the date in the printable form needed
 def date_of_interest():
-    today = date.today() - timedelta(0)
+    today = date.today() - timedelta(21)
     year = today.strftime("%Y")
     month = today.strftime("%m")
     day = today.strftime("%d")
@@ -109,20 +109,29 @@ def get_wikipedia_data():
             print(1)
             input_file = ffmpeg.input("feat_video.webm")
             print(2)
-            pts = "PTS-STARTPTS"
+            trim_file = ffmpeg.trim(input_file, start = 0, end = 180)
             print(3)
-            video = input_file.trim(start = 0, end = 179).setpts(pts)
+            output_file = ffmpeg.output(trim_file, "feat_video_adapt.webm")
             print(4)
-            audio = (input_file.filter_("atrim",start = 0, end = 179).filter_("asetpts", pts))
+            ffmpeg.run(output_file)
             print(5)
-            video_audio_concat = ffmpeg.concat(video,audio,v=1,a=1)
-            print(6)
-            output_file = ffmpeg.output(video_audio_concat, "feat_video_adapt.webm", format = "webm")
-            print(7)
-            output_file.run()
-            print(8)
-            os.replace("feat_video_adapt.webm", "feat_video.webm")
-            print(9)
+            
+      
+           # print(2)
+           # pts = "PTS-STARTPTS"
+           # print(3)
+           # video = input_file.trim(start = 0, end = 179).setpts(pts)
+           # print(4)
+           # audio = (input_file.filter_("atrim",start = 0, end = 179).filter_("asetpts", pts))
+           # print(5)
+           # video_audio_concat = ffmpeg.concat(video,audio,v=1,a=1).node
+           # print(6)
+           # output_file = ffmpeg.output(video_audio_concat, "feat_video_adapt.webm", format = "webm")
+           # print(7)
+           # output_file.run()
+           # print(8)
+           # os.replace("feat_video_adapt.webm", "feat_video.webm")
+           # print(9)
         
         if os.path.getsize("feat_video.webm") > 100_000_000: 
             probe = ffmpeg.probe("feat_video.webm")
