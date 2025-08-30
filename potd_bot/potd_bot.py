@@ -299,8 +299,11 @@ def create_post(text: str, wikipedia_data):
         post["embed"] = {
             "$type": "app.bsky.embed.video",
             "video": blob,
-            "aspectRatio": 1412 / 1080,
-            }
+            "aspectRatio": {
+                "width": 1412,
+                "height": 1080
+            },
+        }
     print(5)
 
     if len(text) > 0:
