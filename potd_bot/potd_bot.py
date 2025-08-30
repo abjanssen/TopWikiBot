@@ -103,8 +103,11 @@ def get_wikipedia_data():
         file_type_movie = True
         print("VIDEO")
         video_input = ffmpeg.input(image_url, ss="00:00:00", t = "00:05:00")
+        print(1)
         video_output = ffmpeg.output(video_input, "feat_video.webm")
-        video_output.run(overwrite_output=True)
+        print(2)
+        video_output.run()
+        print(3)
      #   with open("feat_video.webm", 'w+b') as file:
      #       response = requests.get(image_url, stream=True, headers = USER_AGENT)
      #       file.write(response.content)
