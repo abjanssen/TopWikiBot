@@ -319,7 +319,13 @@ def create_post(text: str, wikipedia_data):
         },
     )
     print(7)
-    resp.raise_for_status()
+
+    try:    
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print("Status code:", e.response.status_code)
+        print("Response headers:", e.response.headers)
+        print("Response body:", e.response.text)   # <-- This contains the error message/body
     print(8)
 
 def main():
