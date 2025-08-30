@@ -122,6 +122,8 @@ def get_wikipedia_data():
             print("new duration", duration_seconds)
             audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
             print(audio_stream)
+            audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
+            print(audio_stream)
                 
            # audio_bitrate = float(next((s for s in probe['streams'] if s['codec_type'] == 'audio'), None)['bit_rate'])
            # print("new audio bitrate", audio_bitrate)
