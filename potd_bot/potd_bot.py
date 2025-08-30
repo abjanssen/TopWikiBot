@@ -25,7 +25,7 @@ def bsky_login_session(handle: str, password: str) -> Dict:
 
 #Define function to get the date in the printable form needed
 def date_of_interest():
-    today = date.today() - timedelta()
+    today = date.today() - timedelta(21)
     year = today.strftime("%Y")
     month = today.strftime("%m")
     day = today.strftime("%d")
@@ -42,6 +42,8 @@ def date_of_interest():
 
 #Define the function that returns the wikipedia data needed for the post
 def get_wikipedia_data():
+   file_type_movie = False
+   movie_cut = False
    current_year, current_month, current_day = date_of_interest()[1:4]
    day_isoformat = "{}-{}-{}".format(current_year, current_month, current_day)
    
@@ -71,7 +73,6 @@ def get_wikipedia_data():
    image_page_url = "https://en.wikipedia.org/wiki/Template:POTD_protected/" + day_isoformat
    
    if image_url.lower().endswith(".jpg"):
-       file_type_movie = False
        with open("feat_picture.jpg", 'w+b') as file:
         response = requests.get(image_url, stream=True, headers = USER_AGENT)
         file.write(response.content)
@@ -101,30 +102,18 @@ def get_wikipedia_data():
         
    elif image_url.lower().endswith(".webm"):
         file_type_movie = True
-        print(file_type_movie)
         print("VIDEO")
-        (
-            ffmpeg
-            .input(image_url)
-            .output('feat_video.webm')
-            .run()
-        )
-       # video_input = ffmpeg.input(image_url, ss="00:00:00", to = "00:05:00")
-        print(1)
-       # video_output = ffmpeg.output(video_input, "feat_video.webm")
-       # print(2)
-       # video_output.run(overwrite_output=True)
-       # print(3)
-     #   with open("feat_video.webm", 'w+b') as file:
-     #       response = requests.get(image_url, stream=True, headers = USER_AGENT)
-     #       file.write(response.content)
+        with open("feat_video.webm", 'w+b') as file:
+            response = requests.get(image_url, stream=True, headers = USER_AGENT)
+            file.write(response.content)
         probe = ffmpeg.probe("feat_video.webm")
         duration_seconds = float(probe['format']['duration'])
         print("original duration",duration_seconds)
         print("original file size", os.path.getsize("feat_video.webm"))
         if duration_seconds > 179:
+            movie_cut = True
             input_file = ffmpeg.input("feat_video.webm", ss="00:00:00", to="00:00:10")
-            output_file = ffmpeg.output(input_file, "feat_video_adapt.webm")
+            output_file = ffmpeg.output(input_file, "feat_video_adapt.webm", acodec='copy',vcodec='copy')
             output_file.run(overwrite_output=True)
             probe = ffmpeg.probe("feat_video_adapt.webm")
             duration_seconds = float(probe['format']['duration'])
@@ -182,21 +171,26 @@ def get_wikipedia_data():
         cleaned_alt_text = tot_alt_text.rsplit(' ',1)[0]
         img_type = tot_alt_text.rsplit(' ',1)[1].lower()
         alt_text = cleaned_alt_text + " Type: " + img_type + ". Credits" + credits + "."
-        description_text = soup.body.find('a', attrs={'class':'mw-file-description'})
-        title = description_text.get("title")
+        title_data = soup.select_one("td p")
+        title = title_data.find_all("a")[0].get_text()
         
    else:
         pass        
 
-   return(final_path, title, alt_text, credits, img_type, file_type_movie)
+   return(final_path, title, alt_text, credits, img_type, file_type_movie, movie_cut, image_url)
     
 #Define the text of the post
 def text_of_message():
    date_it = date_of_interest()[0]
    wikipedia_data = get_wikipedia_data()
    title = wikipedia_data[1]
-   credits=wikipedia_data[3]
-   print_message = f"""The Picture of the Day of {date_it} on @wikipedia.org is: {title}.\n\nCredits{credits}."""
+   credits = wikipedia_data[3]
+   movie_cut = wikipedia_data[6]
+   image_url = wikipedia_data[7]
+   if not movie_cut:
+       print_message = f"""The Picture of the Day of {date_it} on @wikipedia.org is: {title}.\n\nCredits{credits}."""
+   elif movie_cut:
+       print_message = f"""The Picture of the Day of {date_it} on @wikipedia.org is: {title}.\n\nCredits{credits}.\n\nThis movie has been cut from the original due to Bluesky media limits, view the original on {image_url}."""
    return(print_message)
 
 #Define function to parse mentions in the message text into facets
@@ -274,7 +268,6 @@ def create_post(text: str, wikipedia_data):
     
     with open(image_path, "rb") as f:
         img_bytes = f.read()
-    
     resp = requests.post(
         "https://bsky.social/xrpc/com.atproto.repo.uploadBlob",
         headers={
@@ -282,7 +275,8 @@ def create_post(text: str, wikipedia_data):
             "Authorization": "Bearer " + session[1],
         },
         data=img_bytes,
-    )
+        )
+        
     resp.raise_for_status()
     blob = resp.json()["blob"]
     
