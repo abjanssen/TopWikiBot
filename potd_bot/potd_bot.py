@@ -109,12 +109,17 @@ def get_wikipedia_data():
             print(1)
             input_file = ffmpeg.input("feat_video.webm")
             print(2)
-            trim_file = ffmpeg.trim(input_file, start = 0, end = 180)
+            trim_file = ffmpeg.trim(input_file, start = 0, end = 2)
             print(3)
             output_file = ffmpeg.output(trim_file, "feat_video_adapt.webm")
             print(4)
             ffmpeg.run(output_file)
             print(5)
+            probe = ffmpeg.probe("feat_video_adapt.webm")
+            duration_seconds = float(probe['format']['duration'])
+            print(duration_seconds)
+            print(os.path.getsize("feat_video_adapt.webm"))
+            
             
       
            # print(2)
