@@ -25,7 +25,7 @@ def bsky_login_session(handle: str, password: str) -> Dict:
 
 #Define function to get the date in the printable form needed
 def date_of_interest():
-    today = date.today() - timedelta(35)
+    today = date.today() - timedelta(240)
     year = today.strftime("%Y")
     month = today.strftime("%m")
     day = today.strftime("%d")
