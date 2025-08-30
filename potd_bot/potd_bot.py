@@ -71,6 +71,7 @@ def get_wikipedia_data():
    image_page_url = "https://en.wikipedia.org/wiki/Template:POTD_protected/" + day_isoformat
    
    if image_url.lower().endswith(".jpg"):
+       file_type_movie = False
        with open("feat_picture.jpg", 'w+b') as file:
         response = requests.get(image_url, stream=True, headers = USER_AGENT)
         file.write(response.content)
@@ -97,26 +98,24 @@ def get_wikipedia_data():
         alt_text = cleaned_alt_text + " Type: " + img_type + ". Credits" + credits + "."
         description_text = soup.body.find('a', attrs={'class':'mw-file-description'})
         title = description_text.get("title")
+        
    elif image_url.lower().endswith(".webm"):
+        file_type_movie = True
         print("VIDEO")
-        with open("feat_video.webm", 'w+b') as file:
-            response = requests.get(image_url, stream=True, headers = USER_AGENT)
-            file.write(response.content)
+        video_input = ffmpeg.input(image_url, ss="00:00:00", t = "00:05:00")
+        video_output = ffmpeg.output(video_input, "feat_video.webm", c="copy")
+        ffmpeg.run(video_output)
+     #   with open("feat_video.webm", 'w+b') as file:
+     #       response = requests.get(image_url, stream=True, headers = USER_AGENT)
+     #       file.write(response.content)
         probe = ffmpeg.probe("feat_video.webm")
         duration_seconds = float(probe['format']['duration'])
         print("original duration",duration_seconds)
         print("original file size", os.path.getsize("feat_video.webm"))
         if duration_seconds > 179:
-            print(1)
             input_file = ffmpeg.input("feat_video.webm", ss="00:00:00", to="00:00:10")
-            print(2)
-            #trim_file = ffmpeg.trim(input_file, start = 0, end = 10)
-            #print(3)
             output_file = ffmpeg.output(input_file, "feat_video_adapt.webm")
-            print(4)
             output_file.run(overwrite_output=True)
-            print(5)
-            print("new file size", os.path.getsize("feat_video_adapt.webm"))
             probe = ffmpeg.probe("feat_video_adapt.webm")
             duration_seconds = float(probe['format']['duration'])
             print("new duration", duration_seconds)
@@ -124,28 +123,9 @@ def get_wikipedia_data():
             print(audio_stream)
             audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
             print(audio_stream)
-                
-           # audio_bitrate = float(next((s for s in probe['streams'] if s['codec_type'] == 'audio'), None)['bit_rate'])
-           # print("new audio bitrate", audio_bitrate)
-            
-            
-            
-      
-           # print(2)
-           # pts = "PTS-STARTPTS"
-           # print(3)
-           # video = input_file.trim(start = 0, end = 179).setpts(pts)
-           # print(4)
-           # audio = (input_file.filter_("atrim",start = 0, end = 179).filter_("asetpts", pts))
-           # print(5)
-           # video_audio_concat = ffmpeg.concat(video,audio,v=1,a=1).node
-           # print(6)
-           # output_file = ffmpeg.output(video_audio_concat, "feat_video_adapt.webm", format = "webm")
-           # print(7)
-           # output_file.run()
-           # print(8)
-           # os.replace("feat_video_adapt.webm", "feat_video.webm")
-           # print(9)
+            os.replace("feat_video_adapt.webm", "feat_video.webm")
+        
+        print("New file size", os.path.getsize("feat_video.webm"))
         
         if os.path.getsize("feat_video.webm") > 100_000_000: 
             probe = ffmpeg.probe("feat_video.webm")
@@ -157,6 +137,8 @@ def get_wikipedia_data():
                 input_file = ffmpeg.input("feat_video.webm")
                 ffmpeg.input("feat_video.webm").filter("scale", 720, -1).output("feat_video_adapt.webm").run()
                 os.replace("feat_video_adapt.webm", "feat_video.webm")
+        else:
+            print("Resolution adaptation not needed")
                 
         if os.path.getsize("feat_video.webm") > 100_000_000: 
             probe = ffmpeg.probe("feat_video.webm")
@@ -166,6 +148,8 @@ def get_wikipedia_data():
                 input = ffmpeg.input("feat_video.webm")
                 ffmpeg.output(input, "feat_video_adapt.webm", **{'c:v': 'libvpx-vp9', 'c:a': 'libopus', 'b:a': 128_000}).overwrite_output().run()
                 os.replace("feat_video_adapt.webm", "feat_video.webm")
+        else:
+            print("video bitrate adaptation not needed")
         
         if os.path.getsize("feat_video.webm") > 100_000_000: 
             probe = ffmpeg.probe("feat_video.webm")
@@ -175,9 +159,10 @@ def get_wikipedia_data():
                 input = ffmpeg.input("feat_video.webm")
                 ffmpeg.output(input, "feat_video_adapt.webm", **{'c:v': 'libvpx-vp9', 'c:a': 'libopus', 'b:v': 2_500_000}).overwrite_output().run()
                 os.replace("feat_video_adapt.webm", "feat_video.webm")
+        else:
+            print("aaudio bitrate adaptation not needed")
                 
         final_path = os.getcwd() + "/feat_video.webm"
-        
         response = requests.get(image_page_url, headers = USER_AGENT)
         soup = BeautifulSoup(response.text, 'html.parser')
         body_text = soup.body.find('div', attrs={'class':'mw-body-content'}).text
@@ -193,7 +178,7 @@ def get_wikipedia_data():
    else:
         pass        
 
-   return(final_path, title, alt_text, credits, img_type)
+   return(final_path, title, alt_text, credits, img_type, file_type_movie)
     
 #Define the text of the post
 def text_of_message():
