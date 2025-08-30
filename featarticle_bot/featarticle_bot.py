@@ -299,7 +299,9 @@ def create_post(text: str, wikipedia_data):
     if file_type_movie:
         post["embed"] = {
             "type": "app.bsky.embed.video",
-            "video": blob,            
+            "video": blob,
+            "aspectRatio": 1412 / 1080,
+            
             }
 
     if len(text) > 0:
