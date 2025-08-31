@@ -25,7 +25,7 @@ def bsky_login_session(handle: str, password: str) -> Dict:
 
 #Define function to get the date in the printable form needed
 def date_of_interest():
-    today = date.today() - timedelta(0)
+    today = date.today() - timedelta(22)
     year = today.strftime("%Y")
     month = today.strftime("%m")
     day = today.strftime("%d")
@@ -189,7 +189,7 @@ def text_of_message():
    if not movie_cut:
        print_message = f"""The Picture of the Day of {date_it} on @wikipedia.org is: {title}.\n\nCredits{credits}."""
    elif movie_cut:
-       print_message = f"""The Picture of the Day of {date_it} on @wikipedia.org is: {title}.\n\nCredits{credits}.\n\nThis movie has been cut from the original due to Bluesky media limits, view the original on {image_url}."""
+       print_message = f"""The Picture of the Day of {date_it} on @wikipedia.org is: {title}.\n\nCredits{credits}.\n\nThis is a one minute snippet, view the full length original on Wikipedia."""
    return(print_message)
 
 #Define function to parse mentions in the message text into facets
@@ -203,6 +203,37 @@ def parse_mentions(text: str) -> List[Dict]:
                 "start": m.start(1),
                 "end": m.end(1),
                 "handle": m.group(1)[1:].decode("UTF-8"),
+            }
+        )
+    return spans
+
+#Define function to parse URLs in the message text into facets
+def parse_urls(text: str) -> List[Dict]:
+    spans = []
+    url_regex = rb"[$|\W](https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*[-a-zA-Z0-9@%_\+~#//=])?)"
+    text_bytes = text.encode("UTF-8")
+    for m in re.finditer(url_regex, text_bytes):
+        spans.append(
+            {
+                "start": m.start(1),
+                "end": m.end(1),
+                "url": m.group(1).decode("UTF-8"),
+            }
+        )
+    return spans
+
+#Define function to parse URLs in the message text into facets
+def parse_url_link_wikipedia(text: str) -> List[Dict]:
+    spans = []
+    image_url = get_wikipedia_data()[7]
+    url_regex = rb"original on Wikipedia\.$"
+    text_bytes = text.encode("UTF-8")
+    for m in re.finditer(url_regex, text_bytes):
+        spans.append(
+            {
+                "start": m.start(0)+12,
+                "end": m.end(0)-1,
+                "url": image_url,
             }
         )
     return spans
@@ -241,22 +272,24 @@ def parse_facets(text: str) -> List[Dict]:
                 ],
             }
         )
-    return facets
-
-#Define function to parse URLs in the message text into facets
-def parse_urls(text: str) -> List[Dict]:
-    spans = []
-    url_regex = rb"[$|\W](https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*[-a-zA-Z0-9@%_\+~#//=])?)"
-    text_bytes = text.encode("UTF-8")
-    for m in re.finditer(url_regex, text_bytes):
-        spans.append(
+    for w in parse_url_link_wikipedia(text):
+        facets.append(
             {
-                "start": m.start(1),
-                "end": m.end(1),
-                "url": m.group(1).decode("UTF-8"),
+                "index": {
+                    "byteStart": u["start"],
+                    "byteEnd": u["end"],
+                },
+                "features": [
+                    {
+                        "$type": "app.bsky.richtext.facet#link",
+                        "uri": u["url"],
+                    }
+                ],
             }
         )
-    return spans
+    return facets
+
+
 
 def create_post(text: str, wikipedia_data):
     image_path = wikipedia_data[0]
@@ -299,11 +332,8 @@ def create_post(text: str, wikipedia_data):
         post["embed"] = {
             "$type": "app.bsky.embed.video",
             "video": blob,
-            "aspectRatio": {
-                "width": 1412,
-                "height": 1080
-            },
-        }
+            "aspectRatio": 1412 / 1080,
+            }
     print(5)
 
     if len(text) > 0:
