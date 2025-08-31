@@ -301,6 +301,7 @@ def create_post(text: str, wikipedia_data):
     
     with open(image_path, "rb") as f:
         img_bytes = f.read()
+        width, height = f.size
     resp = requests.post(
         "https://bsky.social/xrpc/com.atproto.repo.uploadBlob",
         headers={
@@ -325,6 +326,10 @@ def create_post(text: str, wikipedia_data):
         "images": [{
             "alt": alt,
             "image": blob,
+            "aspectRatio": {
+                "width": width,
+                "height": height
+            }
         }],
         }
     print(4)
