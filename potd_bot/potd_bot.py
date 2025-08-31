@@ -299,9 +299,12 @@ def create_post(text: str, wikipedia_data):
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     language = "en-US"
     
+    with Image.open(image_path) as f:
+        width, height = f.size
+
     with open(image_path, "rb") as f:
         img_bytes = f.read()
-        width, height = f.size
+        
     resp = requests.post(
         "https://bsky.social/xrpc/com.atproto.repo.uploadBlob",
         headers={
