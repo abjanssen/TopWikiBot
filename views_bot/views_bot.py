@@ -325,7 +325,7 @@ def fetch_embed_url_card() -> Dict:
     return {
         "$type": "app.bsky.embed.external",
         "external": card,
-         "aspectRatio:": {"width": 4510, "height":2927}
+         "aspectRatio:": {"width": 1000, "height":1000}
         }
 
 
